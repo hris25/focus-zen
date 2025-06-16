@@ -1,19 +1,22 @@
-let timer;
-let timeLeft;
+// Variables globales
+let timer = null;
+let timeLeft = 0;
 let isRunning = false;
 let mode = "focus"; // "focus" ou "pause"
 
-const focusDuration = 0.5 * 60;
-const pauseDuration = 5 * 60;
+const focusDuration = 0.5 * 60; // en secondes (ex: 30s)
+const pauseDuration = 5 * 60; // en secondes (ex: 5min)
 
 const timerDisplay = document.getElementById("timer");
 const startButton = document.getElementById("start");
 const siteList = document.getElementById("siteList");
 const newSiteInput = document.getElementById("newSite");
 const addSiteBtn = document.getElementById("addSite");
+const blockDurationInput = document.getElementById("blockDuration");
 
 const dingSound = new Audio(chrome.runtime.getURL("sounds/ding.mp3"));
 
+// Met à jour l'affichage du timer mm:ss
 function updateDisplay() {
   const minutes = Math.floor(timeLeft / 60)
     .toString()
@@ -22,8 +25,10 @@ function updateDisplay() {
   timerDisplay.textContent = `${minutes}:${seconds}`;
 }
 
+// Reset local (popup) du timer (sans toucher au background)
 function resetTimer() {
   clearInterval(timer);
+  timer = null;
   isRunning = false;
   mode = "focus";
   timeLeft = focusDuration;
@@ -31,58 +36,63 @@ function resetTimer() {
   updateDisplay();
 }
 
-function switchToPause() {
-  mode = "pause";
-  timeLeft = pauseDuration;
-  updateDisplay();
-  startButton.textContent = "Pause en cours...";
-  timer = setInterval(runTimer, 1000);
-}
-
-function switchToFocus() {
-  mode = "focus";
-  timeLeft = focusDuration;
-  updateDisplay();
-  startButton.textContent = "Démarrer";
-  isRunning = false;
-}
-
-function runTimer() {
-  if (timeLeft <= 0) {
-    clearInterval(timer);
-    dingSound.play();
-    if (mode === "focus") {
-      // Passage automatique à la pause
-      timerDisplay.textContent = "🧘 Pause !";
-      setTimeout(switchToPause, 1000);
-    } else {
-      // Fin de pause
-      timerDisplay.textContent = "✔️ Fin de pause !";
-      setTimeout(switchToFocus, 1000);
+// Sync l'affichage avec l'état du background
+function syncWithBackground() {
+  chrome.runtime.sendMessage({ action: "getState" }, (response) => {
+    if (!response) {
+      resetTimer();
+      return;
     }
-  } else {
-    timeLeft--;
+    mode = response.mode;
+    isRunning = response.isRunning;
+    timeLeft = Math.ceil(response.remainingTime / 1000);
+
     updateDisplay();
-  }
+    startButton.textContent = isRunning ? "Réinitialiser" : "Démarrer";
+
+    if (isRunning && !timer) {
+      // Démarre le timer local pour affichage (1s)
+      timer = setInterval(() => {
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          timer = null;
+        } else {
+          timeLeft--;
+          updateDisplay();
+        }
+      }, 1000);
+    }
+  });
 }
 
+// Fonction pour démarrer ou reset le timer via background
 function startTimer() {
   if (isRunning) {
+    // Reset timer
+    chrome.runtime.sendMessage({ action: "reset" });
     resetTimer();
-    return;
-  }
-
-  isRunning = true;
-  startButton.textContent = "Réinitialiser";
-
-  if (mode === "focus") {
-    timeLeft = focusDuration;
   } else {
-    timeLeft = pauseDuration;
+    // Démarrer timer
+    chrome.runtime.sendMessage({ action: "start" });
+    isRunning = true;
+    startButton.textContent = "Réinitialiser";
+    // On ne connaît pas encore le temps restant, on attend le message getState
   }
-
-  timer = setInterval(runTimer, 1000);
 }
+
+// Ecoute les messages du background (notamment fin de phase)
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "phaseEnded") {
+    setTimeout(() => {
+      dingSound.play();
+    }, 500);
+  } else if (request.action === "stateUpdated") {
+    // Le background a mis à jour l'état, on sync l'affichage
+    syncWithBackground();
+  }
+});
+
+// Gestion liste sites bloqués et stats
 
 function loadSites() {
   chrome.storage.local.get({ blockedSites: [] }, (data) => {
@@ -134,7 +144,7 @@ function loadStats() {
 
 function addSite() {
   const newSite = newSiteInput.value.trim();
-  const duration = parseInt(document.getElementById("blockDuration").value);
+  const duration = parseInt(blockDurationInput.value);
 
   if (!newSite || isNaN(duration)) return;
 
@@ -144,7 +154,7 @@ function addSite() {
     const updated = [...data.blockedSites, { domain: newSite, expiresAt }];
     chrome.storage.local.set({ blockedSites: updated }, () => {
       newSiteInput.value = "";
-      document.getElementById("blockDuration").value = "";
+      blockDurationInput.value = "";
       loadSites();
     });
   });
@@ -158,9 +168,12 @@ function removeSite(index) {
   });
 }
 
+// Listeners
 addSiteBtn.addEventListener("click", addSite);
+startButton.addEventListener("click", startTimer);
+
+// Initialisation
+resetTimer();
 loadSites();
 loadStats();
-
-startButton.addEventListener("click", startTimer);
-resetTimer();
+syncWithBackground();
