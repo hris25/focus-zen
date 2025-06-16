@@ -15,6 +15,19 @@ const addSiteBtn = document.getElementById("addSite");
 const blockDurationInput = document.getElementById("blockDuration");
 
 const dingSound = new Audio(chrome.runtime.getURL("sounds/ding.mp3"));
+// Tableau de citations en français
+const citations = [
+  "La concentration est la clé du succès.",
+  "Fais une chose à la fois, et fais-la bien.",
+  "Le temps est précieux, utilise-le avec sagesse.",
+  "Moins de distraction, plus d'action.",
+  "Ta discipline détermine ton avenir.",
+  "Un esprit calme est un esprit puissant.",
+  "Chaque minute compte, reste focus.",
+  "Élimine ce qui ne te rapproche pas de ton objectif.",
+  "Ta constance vaut mieux que ta motivation.",
+  "Concentre-toi sur le processus, pas seulement sur le résultat.",
+];
 
 // Met à jour l'affichage du timer mm:ss
 function updateDisplay() {
@@ -167,6 +180,18 @@ function removeSite(index) {
     chrome.storage.local.set({ blockedSites: data.blockedSites }, loadSites);
   });
 }
+
+// Afficher une nouvelle citation aléatoire
+function afficherNouvelleCitation() {
+  const quoteElement = document.getElementById("quote");
+  const indexAleatoire = Math.floor(Math.random() * citations.length);
+  quoteElement.textContent = `"${citations[indexAleatoire]}"`;
+}
+
+// Bouton "Nouvelle citation"
+document
+  .getElementById("new-quote")
+  .addEventListener("click", afficherNouvelleCitation);
 
 // Listeners
 addSiteBtn.addEventListener("click", addSite);
