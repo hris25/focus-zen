@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Focus Zen</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Focus Zen</h1>
+
+      <div id="timer">25:00</div>
+      <button id="start">Démarrer</button>
+      <button id="reset">Réinitialiser</button>
+
+      <div style="margin-top: 20px; text-align: left">
+        <h3>Sites bloqués 🔒</h3>
+        <ul id="siteList"></ul>
+        <!--<div id="stats" style="margin-top: 20px"></div>-->
+
+        <input type="text" id="newSite" placeholder="ex: youtube.com" />
+        <input
+          type="number"
+          id="blockDuration"
+          placeholder="Durée (min)"
+          min="1"
+          style="width: 100px"
+        />
+        <button id="addSite">Ajouter</button>
+      </div>
+
+      <blockquote id="quote">
+        "La concentration est la clé du succès."
+      </blockquote>
+
+      <button id="new-quote">Nouvelle citation</button>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

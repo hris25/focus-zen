@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Focus Zen",
+  "description": "Bloque les distractions et booste ta concentration avec le Pomodoro et des citations motivantes.",
+  "version": "1.0.0",
+  "icons": {
+    "16": "assets/icon.png",
+    "48": "assets/icon.png",
+    "128": "assets/icon.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": "assets/icon.png"
+  },
+  "options_page": "options/options.html",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "webRequest",
+    "webRequestBlocking",
+    "storage",
+    "tabs",
+    "notifications"
+  ],
+  "host_permissions": ["https://zenquotes.io/*", "<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/block.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["blocked.html", "blocked.js", "sounds/ding.mp3"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
